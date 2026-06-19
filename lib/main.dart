@@ -5,7 +5,7 @@ import 'package:notification_listener_service/notification_event.dart';
 import 'core/payment_parser.dart';
 import 'core/transaction_manager.dart';
 import 'core/voice_engine.dart';
-import 'services/sms_service.dart';
+
 import 'ui/history_screen.dart';
 
 void main() async {
@@ -82,7 +82,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool isPhonePeEnabled = true;
   bool isGPayEnabled = true;
   bool isPaytmEnabled = true;
-  bool isSmsEnabled = true;
 
   @override
   void initState() {
@@ -90,7 +89,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadSettings();
     _requestPermissions();
     _startListening();
-    SmsService.initialize();
   }
 
   Future<void> _loadSettings() async {
@@ -99,7 +97,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isPhonePeEnabled = prefs.getBool('phonepe') ?? true;
       isGPayEnabled = prefs.getBool('gpay') ?? true;
       isPaytmEnabled = prefs.getBool('paytm') ?? true;
-      isSmsEnabled = prefs.getBool('sms') ?? true;
     });
   }
 
@@ -187,15 +184,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (val) {
               setState(() => isPaytmEnabled = val);
               _saveSetting('paytm', val);
-            },
-          ),
-          const Divider(),
-          SwitchListTile(
-            title: const Text('Bank SMS'),
-            value: isSmsEnabled,
-            onChanged: (val) {
-              setState(() => isSmsEnabled = val);
-              _saveSetting('sms', val);
             },
           ),
           const Divider(),
