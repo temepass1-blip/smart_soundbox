@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.JavaVersion
 import org.gradle.api.tasks.compile.JavaCompile
 
 allprojects {
@@ -21,9 +22,24 @@ subprojects {
         project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
             compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
         }
+        
         project.tasks.withType(JavaCompile::class.java).configureEach {
             sourceCompatibility = "17"
             targetCompatibility = "17"
+        }
+        
+        if (project.hasProperty("android")) {
+            try {
+                val androidExt = project.extensions.findByName("android")
+                if (androidExt != null) {
+                    val compileOptionsMethod = androidExt.javaClass.getMethod("getCompileOptions")
+                    val compileOptions = compileOptionsMethod.invoke(androidExt)
+                    val setSourceCompat = compileOptions.javaClass.getMethod("setSourceCompatibility", JavaVersion::class.java)
+                    val setTargetCompat = compileOptions.javaClass.getMethod("setTargetCompatibility", JavaVersion::class.java)
+                    setSourceCompat.invoke(compileOptions, JavaVersion.VERSION_17)
+                    setTargetCompat.invoke(compileOptions, JavaVersion.VERSION_17)
+                }
+            } catch (e: Exception) {}
         }
     }
 }
