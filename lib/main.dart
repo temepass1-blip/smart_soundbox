@@ -91,6 +91,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool isPhonePeEnabled = true;
   bool isGPayEnabled = true;
   bool isPaytmEnabled = true;
+  bool isBhimEnabled = true;
+  bool isAmazonPayEnabled = true;
+  bool isCredEnabled = true;
   bool _hasPermission = false;
   List<Map<String, String>> _voices = [];
   Map<String, String>? _selectedVoice;
@@ -125,6 +128,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isPhonePeEnabled = prefs.getBool('phonepe') ?? true;
       isGPayEnabled = prefs.getBool('gpay') ?? true;
       isPaytmEnabled = prefs.getBool('paytm') ?? true;
+      isBhimEnabled = prefs.getBool('bhim') ?? true;
+      isAmazonPayEnabled = prefs.getBool('amazonpay') ?? true;
+      isCredEnabled = prefs.getBool('cred') ?? true;
       _customPackages = prefs.getStringList('custom_packages') ?? [];
       
       String? savedVoiceName = prefs.getString('voice_name');
@@ -221,6 +227,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (val) {
               setState(() => isPaytmEnabled = val);
               _saveSetting('paytm', val);
+            },
+          ),
+          SwitchListTile(
+            title: const Text('BHIM UPI'),
+            value: isBhimEnabled,
+            onChanged: (val) {
+              setState(() => isBhimEnabled = val);
+              _saveSetting('bhim', val);
+            },
+          ),
+          SwitchListTile(
+            title: const Text('Amazon Pay'),
+            value: isAmazonPayEnabled,
+            onChanged: (val) {
+              setState(() => isAmazonPayEnabled = val);
+              _saveSetting('amazonpay', val);
+            },
+          ),
+          SwitchListTile(
+            title: const Text('CRED'),
+            value: isCredEnabled,
+            onChanged: (val) {
+              setState(() => isCredEnabled = val);
+              _saveSetting('cred', val);
             },
           ),
           const Divider(),
