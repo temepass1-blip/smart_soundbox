@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 allprojects {
     repositories {
         google()
@@ -20,14 +22,19 @@ subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
             try {
-                val androidExt = project.extensions.findByName("android") as? com.android.build.gradle.LibraryExtension
-                if (androidExt != null && androidExt.namespace == null) {
-                    val manifestFile = project.file("src/main/AndroidManifest.xml")
-                    if (manifestFile.exists()) {
-                        val content = manifestFile.readText()
-                        val matcher = java.util.regex.Pattern.compile("package=\"([^\"]+)\"").matcher(content)
-                        if (matcher.find()) {
-                            androidExt.namespace = matcher.group(1)
+                // Use reflection to bypass strict typing and deprecation errors
+                val androidExt = project.extensions.findByName("android")
+                if (androidExt != null) {
+                    val getNamespace = androidExt.javaClass.getMethod("getNamespace")
+                    if (getNamespace.invoke(androidExt) == null) {
+                        val manifestFile = project.file("src/main/AndroidManifest.xml")
+                        if (manifestFile.exists()) {
+                            val content = manifestFile.readText()
+                            val matcher = java.util.regex.Pattern.compile("package=\"([^\"]+)\"").matcher(content)
+                            if (matcher.find()) {
+                                val setNamespace = androidExt.javaClass.getMethod("setNamespace", String::class.java)
+                                setNamespace.invoke(androidExt, matcher.group(1))
+                            }
                         }
                     }
                 }
@@ -44,7 +51,7 @@ subprojects {
 
 subprojects {
     project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-        kotlinOptions.jvmTarget = "11"
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 
