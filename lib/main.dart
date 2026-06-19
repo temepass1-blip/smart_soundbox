@@ -6,6 +6,7 @@ import 'core/payment_parser.dart';
 import 'core/transaction_manager.dart';
 import 'core/voice_engine.dart';
 import 'services/sms_service.dart';
+import 'ui/history_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,48 @@ class SmartSoundBoxApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const SettingsScreen(),
+      home: const MainNavigationScreen(),
+    );
+  }
+}
+
+class MainNavigationScreen extends StatefulWidget {
+  const MainNavigationScreen({super.key});
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const SettingsScreen(),
+    const HistoryScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -80,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final gPayEnabled = prefs.getBool('gpay') ?? true;
       final paytmEnabled = prefs.getBool('paytm') ?? true;
 
-      String pkg = event.packageName.toLowerCase();
+      String pkg = event.packageName?.toLowerCase() ?? '';
       bool isAllowed = false;
 
       if (pkg.contains('phonepe') && phonePeEnabled) isAllowed = true;
@@ -89,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (!isAllowed) return;
 
-      Transaction? t = PaymentParser.parseNotification(event.title, event.content, event.packageName);
+      Transaction? t = PaymentParser.parseNotification(event.title, event.content, event.packageName ?? '');
       if (t != null) {
         TransactionManager().processNewTransaction(t);
       }

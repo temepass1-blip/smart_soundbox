@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'payment_parser.dart';
 import 'voice_engine.dart';
+import 'database_helper.dart';
 
 class TransactionManager {
   static final TransactionManager _instance = TransactionManager._internal();
@@ -19,6 +20,7 @@ class TransactionManager {
     }
 
     _cache.add(transaction);
+    DatabaseHelper().insertTransaction(transaction);
     VoiceEngine().speak(transaction);
   }
 
