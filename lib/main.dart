@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
-import 'package:device_apps/device_apps.dart';
+import 'package:installed_apps/installed_apps.dart';
+import 'package:installed_apps/app_info.dart';
 import 'core/payment_parser.dart';
 import 'core/transaction_manager.dart';
 import 'core/voice_engine.dart';
@@ -165,10 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAppPicker() async {
-    List<Application> apps = await DeviceApps.getInstalledApplications(
-        includeSystemApps: false,
-        includeAppIcons: true,
-        onlyAppsWithLaunchIntent: true);
+    List<AppInfo> apps = await InstalledApps.getInstalledApps(true, true);
         
     if (!mounted) return;
     
@@ -183,15 +181,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               shrinkWrap: true,
               itemCount: apps.length,
               itemBuilder: (context, index) {
-                Application app = apps[index];
+                AppInfo app = apps[index];
                 return ListTile(
-                  leading: app is ApplicationWithIcon
-                      ? Image.memory(app.icon, width: 40, height: 40)
+                  leading: app.icon != null
+                      ? Image.memory(app.icon!, width: 40, height: 40)
                       : const Icon(Icons.android),
-                  title: Text(app.appName),
-                  subtitle: Text(app.packageName),
+                  title: Text(app.name ?? 'Unknown App'),
+                  subtitle: Text(app.packageName ?? ''),
                   onTap: () {
-                    _addCustomPackage(app.packageName);
+                    if (app.packageName != null) {
+                      _addCustomPackage(app.packageName!);
+                    }
                     Navigator.pop(context);
                   },
                 );
