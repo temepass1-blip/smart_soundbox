@@ -51,7 +51,11 @@ subprojects {
 
 subprojects {
     project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-        compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+    }
+    project.tasks.withType(JavaCompile::class.java).configureEach {
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
 }
 
