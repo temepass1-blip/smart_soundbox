@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.JavaVersion
 
 allprojects {
     repositories {
@@ -49,21 +51,26 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-import org.gradle.api.tasks.compile.JavaCompile
-
 subprojects {
     afterEvaluate {
-        val javaCompileTask = project.tasks.findByName("compileReleaseJavaWithJavac") as? JavaCompile
-        val targetCompat = javaCompileTask?.targetCompatibility ?: "11"
-        
-        val resolvedTarget = when {
-            targetCompat.contains("17") -> JvmTarget.JVM_17
-            targetCompat.contains("1.8") || targetCompat.contains("8") -> JvmTarget.JVM_1_8
-            else -> JvmTarget.JVM_11
-        }
+        try {
+            val androidExt = project.extensions.findByName("android")
+            if (androidExt != null) {
+                val compileOptionsMethod = androidExt.javaClass.getMethod("getCompileOptions")
+                val compileOptions = compileOptionsMethod.invoke(androidExt)
+                val setSourceCompat = compileOptions.javaClass.getMethod("setSourceCompatibility", JavaVersion::class.java)
+                val setTargetCompat = compileOptions.javaClass.getMethod("setTargetCompatibility", JavaVersion::class.java)
+                setSourceCompat.invoke(compileOptions, JavaVersion.VERSION_17)
+                setTargetCompat.invoke(compileOptions, JavaVersion.VERSION_17)
+            }
+        } catch (e: Exception) {}
 
         project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-            compilerOptions.jvmTarget.set(resolvedTarget)
+            compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+        }
+        project.tasks.withType(JavaCompile::class.java).configureEach {
+            sourceCompatibility = "17"
+            targetCompatibility = "17"
         }
     }
 }
