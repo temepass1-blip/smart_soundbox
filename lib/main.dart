@@ -166,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAppPicker() async {
-    List<AppInfo> apps = await InstalledApps.getInstalledApps(true, true);
+    List<AppInfo> apps = await InstalledApps.getInstalledApps(excludeSystemApps: true, withIcon: true);
         
     if (!mounted) return;
     
