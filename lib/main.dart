@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
-import 'package:installed_apps/installed_apps.dart';
-import 'package:installed_apps/app_info.dart';
 import 'core/payment_parser.dart';
 import 'core/transaction_manager.dart';
 import 'core/voice_engine.dart';
@@ -165,33 +163,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showAppPicker() async {
-    List<AppInfo> apps = await InstalledApps.getInstalledApps(excludeSystemApps: true, withIcon: true);
-        
-    if (!mounted) return;
-    
+  final List<Map<String, String>> _popularBanks = const [
+    {'name': 'YONO SBI', 'package': 'com.sbi.lotusintouch'},
+    {'name': 'BHIM SBI Pay', 'package': 'com.sbi.UPI20'},
+    {'name': 'iMobile Pay (ICICI)', 'package': 'com.csam.icici.bank.imobile'},
+    {'name': 'PayZapp (HDFC)', 'package': 'com.hdfcbank.payzapp'},
+    {'name': 'Axis Mobile', 'package': 'com.axis.mobile'},
+    {'name': 'bob World (Bank of Baroda)', 'package': 'com.bankofbaroda.mconnect'},
+    {'name': 'Canara ai1', 'package': 'com.canarabank.mobility'},
+    {'name': 'PNB ONE', 'package': 'com.roam.pnb'},
+    {'name': 'Kotak Mobile Banking', 'package': 'com.msf.kbank.mobile'},
+    {'name': 'Freecharge', 'package': 'com.freecharge.android'},
+    {'name': 'MobiKwik', 'package': 'com.mobikwik_new'},
+    {'name': 'BharatPe', 'package': 'com.bharatpe.app'},
+  ];
+
+  void _showAppPicker() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Select App"),
+          title: const Text("Select Bank App"),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: apps.length,
+              itemCount: _popularBanks.length,
               itemBuilder: (context, index) {
-                AppInfo app = apps[index];
+                final app = _popularBanks[index];
                 return ListTile(
-                  leading: app.icon != null
-                      ? Image.memory(app.icon!, width: 40, height: 40)
-                      : const Icon(Icons.android),
-                  title: Text(app.name ?? 'Unknown App'),
-                  subtitle: Text(app.packageName ?? ''),
+                  leading: const Icon(Icons.account_balance, color: Colors.blue),
+                  title: Text(app['name']!),
+                  subtitle: Text(app['package']!),
                   onTap: () {
-                    if (app.packageName != null) {
-                      _addCustomPackage(app.packageName!);
-                    }
+                    _addCustomPackage(app['package']!);
                     Navigator.pop(context);
                   },
                 );
