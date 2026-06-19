@@ -63,6 +63,7 @@ void onStart(ServiceInstance service) async {
     final phonePeEnabled = prefs.getBool('phonepe') ?? true;
     final gPayEnabled = prefs.getBool('gpay') ?? true;
     final paytmEnabled = prefs.getBool('paytm') ?? true;
+    final customPackages = prefs.getStringList('custom_packages') ?? [];
 
     String pkg = (event.packageName ?? '').toLowerCase();
     bool isAllowed = false;
@@ -70,6 +71,13 @@ void onStart(ServiceInstance service) async {
     if (pkg.contains('phonepe') && phonePeEnabled) isAllowed = true;
     if (pkg.contains('apps.nbu.paisa.user') && gPayEnabled) isAllowed = true; // GPay package
     if (pkg.contains('paytm') && paytmEnabled) isAllowed = true;
+
+    for (String customPkg in customPackages) {
+      if (pkg.contains(customPkg.toLowerCase())) {
+        isAllowed = true;
+        break;
+      }
+    }
 
     if (!isAllowed) return;
 

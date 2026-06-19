@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'payment_parser.dart';
 
 class VoiceEngine {
@@ -12,7 +13,16 @@ class VoiceEngine {
   final Queue<Transaction> _queue = Queue<Transaction>();
 
   Future<void> init() async {
-    await _flutterTts.setLanguage("hi-IN");
+    final prefs = await SharedPreferences.getInstance();
+    String? savedVoiceName = prefs.getString('voice_name');
+    String? savedVoiceLocale = prefs.getString('voice_locale');
+
+    if (savedVoiceName != null && savedVoiceLocale != null) {
+      await _flutterTts.setVoice({"name": savedVoiceName, "locale": savedVoiceLocale});
+    } else {
+      await _flutterTts.setLanguage("hi-IN");
+    }
+
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -21,6 +31,24 @@ class VoiceEngine {
       _isSpeaking = false;
       _processQueue();
     });
+  }
+
+  Future<List<Map<String, String>>> getVoices() async {
+    final voices = await _flutterTts.getVoices;
+    List<Map<String, String>> voiceList = [];
+    if (voices != null) {
+      for (var voice in voices) {
+        voiceList.add(Map<String, String>.from(voice));
+      }
+    }
+    return voiceList;
+  }
+
+  Future<void> setVoice(Map<String, String> voice) async {
+    await _flutterTts.setVoice({"name": voice["name"]!, "locale": voice["locale"]!});
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('voice_name', voice["name"]!);
+    await prefs.setString('voice_locale', voice["locale"]!);
   }
 
   void speak(Transaction transaction) {
