@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
+import 'package:notification_listener_service/notification_event.dart';
+import 'core/payment_parser.dart';
+import 'core/transaction_manager.dart';
+import 'core/voice_engine.dart';
+import 'services/sms_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await VoiceEngine().init();
   runApp(const SmartSoundBoxApp());
 }
 
@@ -36,14 +42,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool isPaytmEnabled = true;
   bool isSmsEnabled = true;
 
-  final FlutterTts flutterTts = FlutterTts();
-
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _initTTS();
     _requestPermissions();
+    _startListening();
+    SmsService.initialize();
   }
 
   Future<void> _loadSettings() async {
@@ -61,13 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool(key, value);
   }
 
-  void _initTTS() async {
-    await flutterTts.setLanguage("hi-IN");
-    await flutterTts.setSpeechRate(0.5);
-    await flutterTts.setVolume(1.0);
-    await flutterTts.setPitch(1.0);
-  }
-
   void _requestPermissions() async {
     bool status = await NotificationListenerService.isPermissionGranted();
     if (!status) {
@@ -75,8 +73,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _testVoice() async {
-    await flutterTts.speak("100 rupaye prapt hue");
+  void _startListening() {
+    NotificationListenerService.notificationsStream.listen((ServiceNotificationEvent event) async {
+      final prefs = await SharedPreferences.getInstance();
+      final phonePeEnabled = prefs.getBool('phonepe') ?? true;
+      final gPayEnabled = prefs.getBool('gpay') ?? true;
+      final paytmEnabled = prefs.getBool('paytm') ?? true;
+
+      String pkg = event.packageName.toLowerCase();
+      bool isAllowed = false;
+
+      if (pkg.contains('phonepe') && phonePeEnabled) isAllowed = true;
+      if (pkg.contains('apps.nbu.paisa.user') && gPayEnabled) isAllowed = true; // GPay package
+      if (pkg.contains('paytm') && paytmEnabled) isAllowed = true;
+
+      if (!isAllowed) return;
+
+      Transaction? t = PaymentParser.parseNotification(event.title, event.content, event.packageName);
+      if (t != null) {
+        TransactionManager().processNewTransaction(t);
+      }
+    });
+  }
+
+  void _testVoice() {
+    Transaction t = Transaction(
+      sender: "Rahul", 
+      amount: 100, 
+      upiRef: "test_ref_123", 
+      source: "test", 
+      timestamp: DateTime.now()
+    );
+    TransactionManager().processNewTransaction(t);
   }
 
   @override
