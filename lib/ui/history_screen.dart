@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:csv/csv.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/database_helper.dart';
 import '../core/payment_parser.dart';
@@ -60,7 +60,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ]);
     }
 
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = rows.map((row) => row.map((e) => '"$e"').join(',')).join('\n');
     
     // In a real app, this should probably be external storage or use share_plus plugin,
     // but app documents directory works for demonstration.
