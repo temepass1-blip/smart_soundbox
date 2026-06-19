@@ -48,10 +48,6 @@ subprojects {
 }
 
 subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-subprojects {
     afterEvaluate {
         try {
             val androidExt = project.extensions.findByName("android")
@@ -73,6 +69,10 @@ subprojects {
             targetCompatibility = "17"
         }
     }
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
