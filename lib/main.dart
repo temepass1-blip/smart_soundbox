@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
+import 'package:device_apps/device_apps.dart';
 import 'core/payment_parser.dart';
 import 'core/transaction_manager.dart';
 import 'core/voice_engine.dart';
@@ -154,14 +155,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _addCustomPackage() {
-    if (_customPkgController.text.isNotEmpty) {
+  void _addCustomPackage(String pkg) {
+    if (pkg.isNotEmpty && !_customPackages.contains(pkg)) {
       setState(() {
-        _customPackages.add(_customPkgController.text.trim());
-        _customPkgController.clear();
+        _customPackages.add(pkg);
       });
       _saveCustomPackages();
     }
+  }
+
+  void _showAppPicker() async {
+    List<Application> apps = await DeviceApps.getInstalledApplications(
+        includeSystemApps: false,
+        includeAppIcons: true,
+        onlyAppsWithLaunchIntent: true);
+        
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select App"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: apps.length,
+              itemBuilder: (context, index) {
+                Application app = apps[index];
+                return ListTile(
+                  leading: app is ApplicationWithIcon
+                      ? Image.memory(app.icon, width: 40, height: 40)
+                      : const Icon(Icons.android),
+                  title: Text(app.appName),
+                  subtitle: Text(app.packageName),
+                  onTap: () {
+                    _addCustomPackage(app.packageName);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _removeCustomPackage(String pkg) {
@@ -257,30 +296,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
-              'Custom App Sources (Package Names)',
+              'Custom App Sources',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _customPkgController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. com.sbi.upi.app',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _addCustomPackage,
-                  child: const Text('Add'),
-                ),
-              ],
+            child: ElevatedButton.icon(
+              onPressed: _showAppPicker,
+              icon: const Icon(Icons.add),
+              label: const Text('Select App From Device'),
             ),
           ),
           ..._customPackages.map((pkg) => ListTile(
@@ -308,7 +333,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 items: _voices.map((voice) {
                   return DropdownMenuItem<Map<String, String>>(
                     value: voice,
-                    child: Text("${voice['locale']} - ${voice['name']}"),
+                    child: Text("${voice['displayName']}"),
                   );
                 }).toList(),
                 onChanged: (Map<String, String>? newValue) {

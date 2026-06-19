@@ -36,9 +36,24 @@ class VoiceEngine {
   Future<List<Map<String, String>>> getVoices() async {
     final voices = await _flutterTts.getVoices;
     List<Map<String, String>> voiceList = [];
+    
     if (voices != null) {
+      int hiCount = 1;
+      int enCount = 1;
+
       for (var voice in voices) {
-        voiceList.add(Map<String, String>.from(voice));
+        Map<String, String> v = Map<String, String>.from(voice);
+        String locale = v['locale'] ?? '';
+        
+        if (locale.toLowerCase().startsWith('hi')) {
+          v['displayName'] = 'Hindi Voice $hiCount';
+          hiCount++;
+          voiceList.add(v);
+        } else if (locale.toLowerCase().startsWith('en')) {
+          v['displayName'] = 'English Voice $enCount';
+          enCount++;
+          voiceList.add(v);
+        }
       }
     }
     return voiceList;
