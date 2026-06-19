@@ -1,4 +1,4 @@
-package com.example.smart_soundbox
+package com.zbilling.smartsoundbox
 
 import io.flutter.embedding.android.FlutterActivity
 
