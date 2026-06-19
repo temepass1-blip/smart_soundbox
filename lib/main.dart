@@ -122,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final gPayEnabled = prefs.getBool('gpay') ?? true;
       final paytmEnabled = prefs.getBool('paytm') ?? true;
 
-      String pkg = event.packageName.toLowerCase();
+      String pkg = (event.packageName ?? '').toLowerCase();
       bool isAllowed = false;
 
       if (pkg.contains('phonepe') && phonePeEnabled) isAllowed = true;
@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (!isAllowed) return;
 
-      Transaction? t = PaymentParser.parseNotification(event.title, event.content, event.packageName);
+      Transaction? t = PaymentParser.parseNotification(event.title ?? '', event.content ?? '', event.packageName ?? '');
       if (t != null) {
         TransactionManager().processNewTransaction(t);
       }
