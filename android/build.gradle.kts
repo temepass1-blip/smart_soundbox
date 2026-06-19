@@ -49,13 +49,22 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+import org.gradle.api.tasks.compile.JavaCompile
+
 subprojects {
-    project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
-    }
-    project.tasks.withType(JavaCompile::class.java).configureEach {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+    afterEvaluate {
+        val javaCompileTask = project.tasks.findByName("compileReleaseJavaWithJavac") as? JavaCompile
+        val targetCompat = javaCompileTask?.targetCompatibility ?: "11"
+        
+        val resolvedTarget = when {
+            targetCompat.contains("17") -> JvmTarget.JVM_17
+            targetCompat.contains("1.8") || targetCompat.contains("8") -> JvmTarget.JVM_1_8
+            else -> JvmTarget.JVM_11
+        }
+
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
+            compilerOptions.jvmTarget.set(resolvedTarget)
+        }
     }
 }
 
