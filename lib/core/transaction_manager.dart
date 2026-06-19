@@ -30,7 +30,8 @@ class TransactionManager {
       // OR if the upiRef matches (if we actually extracted it).
       bool sameRef = (cached.upiRef == transaction.upiRef && transaction.upiRef.isNotEmpty);
       bool sameAmountSender = (cached.amount == transaction.amount && cached.sender == transaction.sender);
-      bool withinTimeFrame = transaction.timestamp.difference(cached.timestamp).inMinutes < 5;
+      // Reduce duplicate window to 15 seconds to allow legit double payments
+      bool withinTimeFrame = transaction.timestamp.difference(cached.timestamp).inSeconds < 15;
 
       if (sameRef || (sameAmountSender && withinTimeFrame)) {
         return true;
@@ -41,6 +42,7 @@ class TransactionManager {
 
   void _cleanOldCache() {
     final now = DateTime.now();
-    _cache.removeWhere((t) => now.difference(t.timestamp).inMinutes >= 5);
+    // Cache memory only needs to hold for 1 minute now
+    _cache.removeWhere((t) => now.difference(t.timestamp).inMinutes >= 1);
   }
 }

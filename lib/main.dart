@@ -8,9 +8,12 @@ import 'core/voice_engine.dart';
 
 import 'ui/history_screen.dart';
 
+import 'services/background_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await VoiceEngine().init();
+  await initializeBackgroundService();
   runApp(const SmartSoundBoxApp());
 }
 
@@ -88,7 +91,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadSettings();
     _requestPermissions();
-    _startListening();
   }
 
   Future<void> _loadSettings() async {
@@ -112,28 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _startListening() {
-    NotificationListenerService.notificationsStream.listen((ServiceNotificationEvent event) async {
-      final prefs = await SharedPreferences.getInstance();
-      final phonePeEnabled = prefs.getBool('phonepe') ?? true;
-      final gPayEnabled = prefs.getBool('gpay') ?? true;
-      final paytmEnabled = prefs.getBool('paytm') ?? true;
 
-      String pkg = (event.packageName ?? '').toLowerCase();
-      bool isAllowed = false;
-
-      if (pkg.contains('phonepe') && phonePeEnabled) isAllowed = true;
-      if (pkg.contains('apps.nbu.paisa.user') && gPayEnabled) isAllowed = true; // GPay package
-      if (pkg.contains('paytm') && paytmEnabled) isAllowed = true;
-
-      if (!isAllowed) return;
-
-      Transaction? t = PaymentParser.parseNotification(event.title ?? '', event.content ?? '', event.packageName ?? '');
-      if (t != null) {
-        TransactionManager().processNewTransaction(t);
-      }
-    });
-  }
 
   void _testVoice() {
     Transaction t = Transaction(
