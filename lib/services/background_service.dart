@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:telephony/telephony.dart';
 
 import '../core/payment_parser.dart';
 import '../core/transaction_manager.dart';
@@ -51,11 +52,30 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 }
 
 @pragma('vm:entry-point')
+backgroundMessageHandler(SmsMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await VoiceEngine().init();
+  Transaction? t = PaymentParser.parseSms(message.body ?? '', message.address ?? '');
+  if (t != null) {
+      TransactionManager().processNewTransaction(t);
+  }
+}
+
+@pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize TTS Engine in the background isolate
   await VoiceEngine().init();
+
+  // Listen to SMS Service
+  Telephony telephony = Telephony.instance;
+  telephony.listenIncomingSms(
+    onNewMessage: (SmsMessage message) {
+      backgroundMessageHandler(message);
+    },
+    onBackgroundMessage: backgroundMessageHandler,
+  );
 
   // Listen to Notification Service
   NotificationListenerService.notificationsStream.listen((ServiceNotificationEvent event) async {

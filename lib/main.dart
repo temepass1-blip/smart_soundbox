@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'core/payment_parser.dart';
 import 'core/transaction_manager.dart';
 import 'core/voice_engine.dart';
@@ -95,8 +96,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool isAmazonPayEnabled = true;
   bool isCredEnabled = true;
   bool _hasPermission = false;
-  List<Map<String, String>> _voices = [];
-  Map<String, String>? _selectedVoice;
+  bool _hasSmsPermission = false;
+  bool _isBatteryOptimizationIgnored = false;
+  String _selectedLanguage = 'hi-IN';
   final TextEditingController _customPkgController = TextEditingController();
   List<String> _customPackages = [];
 
@@ -104,21 +106,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadSettings();
-    _checkPermission();
-    _loadVoices();
+    _checkPermissions();
   }
 
-  Future<void> _checkPermission() async {
-    bool status = await NotificationListenerService.isPermissionGranted();
+  Future<void> _checkPermissions() async {
+    bool notifStatus = await NotificationListenerService.isPermissionGranted();
+    bool smsStatus = await Permission.sms.isGranted;
+    bool batteryStatus = await Permission.ignoreBatteryOptimizations.isGranted;
     setState(() {
-      _hasPermission = status;
-    });
-  }
-
-  Future<void> _loadVoices() async {
-    final voices = await VoiceEngine().getVoices();
-    setState(() {
-      _voices = voices;
+      _hasPermission = notifStatus;
+      _hasSmsPermission = smsStatus;
+      _isBatteryOptimizationIgnored = batteryStatus;
     });
   }
 
@@ -132,12 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isAmazonPayEnabled = prefs.getBool('amazonpay') ?? true;
       isCredEnabled = prefs.getBool('cred') ?? true;
       _customPackages = prefs.getStringList('custom_packages') ?? [];
-      
-      String? savedVoiceName = prefs.getString('voice_name');
-      String? savedVoiceLocale = prefs.getString('voice_locale');
-      if (savedVoiceName != null && savedVoiceLocale != null) {
-        _selectedVoice = {"name": savedVoiceName, "locale": savedVoiceLocale};
-      }
+      _selectedLanguage = prefs.getString('language') ?? 'hi-IN';
     });
   }
 
@@ -150,8 +143,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool status = await NotificationListenerService.isPermissionGranted();
     if (!status) {
       await NotificationListenerService.requestPermission();
-      _checkPermission();
+      _checkPermissions();
     }
+  }
+
+  void _requestSmsPermission() async {
+    await Permission.sms.request();
+    _checkPermissions();
+  }
+
+  void _requestBatteryBypass() async {
+    await Permission.ignoreBatteryOptimizations.request();
+    _checkPermissions();
+  }
+
+  void _setLanguage(String lang) {
+    setState(() {
+      _selectedLanguage = lang;
+    });
+    VoiceEngine().setAppLanguage(lang);
   }
 
   void _addCustomPackage(String pkg) {
@@ -324,38 +334,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
-              'Voice Selection',
+              'Language & Voices',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          if (_voices.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: DropdownButton<Map<String, String>>(
-                isExpanded: true,
-                value: _voices.any((v) => v['name'] == _selectedVoice?['name']) ? _selectedVoice : null,
-                hint: const Text("Select a Voice"),
-                items: _voices.map((voice) {
-                  return DropdownMenuItem<Map<String, String>>(
-                    value: voice,
-                    child: Text("${voice['displayName']}"),
-                  );
-                }).toList(),
-                onChanged: (Map<String, String>? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedVoice = newValue;
-                    });
-                    VoiceEngine().setVoice(newValue);
-                  }
-                },
-              ),
+          ListTile(
+            title: const Text('Announcement Language'),
+            trailing: DropdownButton<String>(
+              value: _selectedLanguage,
+              items: const [
+                DropdownMenuItem(value: 'hi-IN', child: Text('Hindi (Natural)')),
+                DropdownMenuItem(value: 'en-IN', child: Text('English (India)')),
+              ],
+              onChanged: (val) {
+                if (val != null) _setLanguage(val);
+              },
             ),
+          ),
           const Divider(),
           ListTile(
             title: const Text('Test Voice Announcement'),
             trailing: const Icon(Icons.volume_up),
             onTap: _testVoice,
+          ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Required Permissions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
           if (!_hasPermission)
             ListTile(
@@ -367,6 +375,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const ListTile(
               title: Text('Notification Permission Granted', style: TextStyle(color: Colors.green)),
               trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+          if (!_hasSmsPermission)
+            ListTile(
+              title: const Text('Grant SMS Permission (Required for Offline Alerts)', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              trailing: const Icon(Icons.warning, color: Colors.red),
+              onTap: _requestSmsPermission,
+            )
+          else
+            const ListTile(
+              title: Text('SMS Permission Granted', style: TextStyle(color: Colors.green)),
+              trailing: Icon(Icons.check_circle, color: Colors.green),
+            ),
+          if (!_isBatteryOptimizationIgnored)
+            ListTile(
+              title: const Text('Disable Battery Optimization (Keeps app running)', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+              trailing: const Icon(Icons.battery_alert, color: Colors.orange),
+              onTap: _requestBatteryBypass,
+            )
+          else
+            const ListTile(
+              title: Text('Battery Optimization Disabled', style: TextStyle(color: Colors.green)),
+              trailing: Icon(Icons.battery_charging_full, color: Colors.green),
             ),
         ],
       ),

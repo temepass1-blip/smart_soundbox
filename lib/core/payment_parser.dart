@@ -15,7 +15,15 @@ class Transaction {
 }
 
 class PaymentParser {
+  static Transaction? parseSms(String body, String senderPhone) {
+    return _parseContent(senderPhone, body, 'SMS: $senderPhone');
+  }
+
   static Transaction? parseNotification(String title, String body, String sourceApp) {
+    return _parseContent(title, body, sourceApp);
+  }
+
+  static Transaction? _parseContent(String title, String body, String sourceApp) {
     String textToSearch = "$title $body".toLowerCase();
 
     // 1. Check for basic payment keywords

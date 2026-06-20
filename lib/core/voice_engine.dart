@@ -14,18 +14,12 @@ class VoiceEngine {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    String? savedVoiceName = prefs.getString('voice_name');
-    String? savedVoiceLocale = prefs.getString('voice_locale');
+    String language = prefs.getString('language') ?? 'hi-IN';
 
-    if (savedVoiceName != null && savedVoiceLocale != null) {
-      await _flutterTts.setVoice({"name": savedVoiceName, "locale": savedVoiceLocale});
-    } else {
-      await _flutterTts.setLanguage("hi-IN");
-    }
-
-    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setLanguage(language);
+    await _flutterTts.setSpeechRate(0.45); // Slower for clear announcement
     await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
+    await _flutterTts.setPitch(0.95); // Slightly lower pitch for professional sound
 
     _flutterTts.setCompletionHandler(() {
       _isSpeaking = false;
@@ -33,37 +27,10 @@ class VoiceEngine {
     });
   }
 
-  Future<List<Map<String, String>>> getVoices() async {
-    final voices = await _flutterTts.getVoices;
-    List<Map<String, String>> voiceList = [];
-    
-    if (voices != null) {
-      int hiCount = 1;
-      int enCount = 1;
-
-      for (var voice in voices) {
-        Map<String, String> v = Map<String, String>.from(voice);
-        String locale = v['locale'] ?? '';
-        
-        if (locale.toLowerCase().startsWith('hi')) {
-          v['displayName'] = 'Hindi Voice $hiCount';
-          hiCount++;
-          voiceList.add(v);
-        } else if (locale.toLowerCase().startsWith('en')) {
-          v['displayName'] = 'English Voice $enCount';
-          enCount++;
-          voiceList.add(v);
-        }
-      }
-    }
-    return voiceList;
-  }
-
-  Future<void> setVoice(Map<String, String> voice) async {
-    await _flutterTts.setVoice({"name": voice["name"]!, "locale": voice["locale"]!});
+  Future<void> setAppLanguage(String langCode) async {
+    await _flutterTts.setLanguage(langCode);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('voice_name', voice["name"]!);
-    await prefs.setString('voice_locale', voice["locale"]!);
+    await prefs.setString('language', langCode);
   }
 
   void speak(Transaction transaction) {
@@ -77,12 +44,22 @@ class VoiceEngine {
     _isSpeaking = true;
     final transaction = _queue.removeFirst();
     
-    // Format: "Rahul se 100 rupaye prapt hue"
+    final prefs = await SharedPreferences.getInstance();
+    String language = prefs.getString('language') ?? 'hi-IN';
+
     String text = "";
-    if (transaction.sender != 'Customer') {
-      text = "${transaction.sender} se ${transaction.amount.toInt()} rupaye prapt hue";
+    if (language == 'hi-IN') {
+      if (transaction.sender != 'Customer') {
+        text = "${transaction.sender} se ${transaction.amount.toInt()} rupaye prapt hue";
+      } else {
+        text = "${transaction.amount.toInt()} rupaye prapt hue";
+      }
     } else {
-      text = "${transaction.amount.toInt()} rupaye prapt hue";
+      if (transaction.sender != 'Customer') {
+        text = "Received ${transaction.amount.toInt()} rupees from ${transaction.sender}";
+      } else {
+        text = "Received ${transaction.amount.toInt()} rupees";
+      }
     }
 
     await _flutterTts.speak(text);
